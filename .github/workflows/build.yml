@@ -1,0 +1,136 @@
+name: Build Soul Land Mod
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.8.2"
+
+      - name: Generate project
+        shell: bash
+        run: |
+          mkdir -p src/main/java/com/thaeeiei/soulland
+          mkdir -p src/main/resources
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  maven { url = "https://maven.fabricmc.net/" }
+                  gradlePluginPortal()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "SoulLand"
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx3G
+          org.gradle.parallel=true
+          minecraft_version=26.3
+          loader_version=0.20.1
+          loom_version=1.19-SNAPSHOT
+          fabric_api_version=0.166.2+26.3
+          mod_version=1.0.0
+          maven_group=com.thaeeiei.soulland
+          archives_base_name=SoulLand
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'net.fabricmc.fabric-loom' version "${loom_version}"
+          }
+
+          loom {
+              splitEnvironmentSourceSets()
+              mods {
+                  "soulland" {
+                      sourceSet sourceSets.main
+                      sourceSet sourceSets.client
+                  }
+              }
+          }
+
+          dependencies {
+              minecraft "com.mojang:minecraft:${minecraft_version}"
+              implementation "net.fabricmc:fabric-loader:${loader_version}"
+              implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+          }
+
+          tasks.withType(JavaCompile).configureEach {
+              it.options.release = 25
+          }
+
+          java {
+              sourceCompatibility = JavaVersion.VERSION_25
+              targetCompatibility = JavaVersion.VERSION_25
+              withSourcesJar()
+          }
+          EOF
+
+          cat > src/main/resources/fabric.mod.json <<'EOF'
+          {
+            "schemaVersion": 1,
+            "id": "soulland",
+            "version": "${version}",
+            "name": "Soul Land",
+            "description": "Soul Land Mod",
+            "authors": ["ThaeeieiTH"],
+            "environment": "*",
+            "entrypoints": {
+              "main": ["com.thaeeiei.soulland.SoulLand"]
+            },
+            "depends": {
+              "fabricloader": ">=0.20.1",
+              "minecraft": "26.3",
+              "java": ">=25",
+              "fabric-api": "*"
+            }
+          }
+          EOF
+
+          cat > src/main/java/com/thaeeiei/soulland/SoulLand.java <<'EOF'
+          package com.thaeeiei.soulland;
+
+          import net.fabricmc.api.ModInitializer;
+
+          public class SoulLand implements ModInitializer {
+              public static final String MOD_ID = "soulland";
+
+              @Override
+              public void onInitialize() {
+                  System.out.println("[Soul Land] Loaded!");
+              }
+          }
+          EOF
+
+      - name: Build JAR
+        run: gradle --no-daemon clean build
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoulLand-Minecraft-26.3
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 14
