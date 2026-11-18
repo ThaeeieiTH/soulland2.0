@@ -1,3 +1,4 @@
+
 name: Build Soul Land Mod
 
 on:
@@ -25,7 +26,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "9.8.2"
+          gradle-version: "9.5.1"
 
       - name: Generate project
         shell: bash
@@ -47,10 +48,10 @@ jobs:
           cat > gradle.properties <<'EOF'
           org.gradle.jvmargs=-Xmx3G
           org.gradle.parallel=true
-          minecraft_version=26.3
+          minecraft_version=26.2
           loader_version=0.20.1
-          loom_version=1.19-SNAPSHOT
-          fabric_api_version=0.166.2+26.3
+          loom_version=1.17-SNAPSHOT
+          fabric_api_version=0.161.0+26.2
           mod_version=1.0.0
           maven_group=com.thaeeiei.soulland
           archives_base_name=SoulLand
@@ -102,7 +103,7 @@ jobs:
             },
             "depends": {
               "fabricloader": ">=0.20.1",
-              "minecraft": "26.3",
+              "minecraft": "26.2",
               "java": ">=25",
               "fabric-api": "*"
             }
@@ -130,7 +131,8 @@ jobs:
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: SoulLand-Minecraft-26.3
+          name: SoulLand-Minecraft-26.2
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 14
+          
